@@ -1,7 +1,47 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 void main() {
   runApp(const MyApp());
+}
+
+Future<Position> _determinePosition() async {
+  bool serviceEnabled;
+  LocationPermission permission;
+
+  // Test if location services are enabled.
+  serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  if (!serviceEnabled) {
+    // Location services are not enabled don't continue
+    // accessing the position and request users of the
+    // App to enable the location services.
+    return Future.error('Location services are disabled.');
+  }
+
+  permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.denied) {
+      // Permissions are denied, next time you could try
+      // requesting permissions again (this is also where
+      // Android's shouldShowRequestPermissionRationale
+      // returned true. According to Android guidelines
+      // your App should show an explanatory UI now.
+      return Future.error('Location permissions are denied');
+    }
+  }
+
+  if (permission == LocationPermission.deniedForever) {
+    // Permissions are denied forever, handle appropriately.
+    return Future.error(
+        'Location permissions are permanently denied, we cannot request permissions.');
+  }
+
+  // When we reach here, permissions are granted and we can
+  // continue accessing the position of the device.
+  return await Geolocator.getCurrentPosition();
 }
 
 class MyApp extends StatelessWidget {
@@ -48,16 +88,35 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  bool tracking = false;
+  Position position = const Position(
+      accuracy: 0,
+      altitude: 0,
+      heading: 0,
+      latitude: 0,
+      longitude: 0,
+      speed: 0,
+      speedAccuracy: 0,
+      timestamp: null);
+  late Timer timer;
 
-  void _incrementCounter() {
+  void trackingService() {
     setState(() {
       // This call to setState tells the Flutter framework that something has
       // changed in this State, which causes it to rerun the build method below
       // so that the display can reflect the updated values. If we changed
       // _counter without calling setState(), then the build method would not be
       // called again, and so nothing would appear to happen.
-      _counter++;
+      if (tracking) {
+        tracking = false;
+        timer.cancel();
+      } else {
+        tracking = true;
+        timer = Timer.periodic(
+            const Duration(seconds: 5),
+            (Timer t) =>
+                _determinePosition().then((value) => position = value));
+      }
     });
   }
 
@@ -96,19 +155,24 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             const Text(
-              'You have pushed the button this many times:',
+              'Press the map button to start tracking your location',
             ),
             Text(
-              '$_counter',
+              tracking ? 'Tracking' : 'Not Tracking',
               style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            Text(
+              tracking
+                  ? 'Current position: $position'
+                  : 'Not currently tracking',
             ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+        onPressed: trackingService,
+        tooltip: tracking ? 'Stop tracking' : 'Start tracking',
+        child: const Icon(Icons.map_sharp),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
