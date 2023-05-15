@@ -1,6 +1,6 @@
 {
-    "name": "bettertci_mobile",
-    "short_name": "bettertci_mobile",
+    "name": "meili",
+    "short_name": "meili",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

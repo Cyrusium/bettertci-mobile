@@ -1,4 +1,4 @@
-package com.example.bettertci_mobile
+package com.cyrusium.meili
 
 import io.flutter.embedding.android.FlutterActivity
 
