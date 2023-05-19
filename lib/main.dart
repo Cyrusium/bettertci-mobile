@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 void main() {
   runApp(const MyApp());
@@ -145,6 +147,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    MobileScannerController cameraController = MobileScannerController();
     String hour = now.hour.toString();
     String minute = now.minute < 10 ? '0${now.minute}' : now.minute.toString();
     String second = now.second < 10 ? '0${now.second}' : now.second.toString();
@@ -173,6 +176,23 @@ class _MyHomePageState extends State<MyHomePage> {
                 border: const OutlineInputBorder(),
                 labelText: 'Server URL',
                 errorText: validURL ? null : 'Invalid URL',
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.qr_code_scanner),
+                  onPressed: () => MobileScanner(
+                    // fit: BoxFit.contain,
+                    controller: cameraController,
+                    onDetect: (capture) {
+                      final List<Barcode> barcodes = capture.barcodes;
+                      for (final barcode in barcodes) {
+                        if (barcode.url != null) {
+                          setState(() {
+                            server = Uri.parse(barcode.url.toString());
+                          });
+                        }
+                      }
+                    },
+                  ),
+                ),
               ),
               onChanged: (String value) {
                 setState(() {
